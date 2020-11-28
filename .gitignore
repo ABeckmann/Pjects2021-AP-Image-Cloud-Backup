@@ -23,5 +23,5 @@
 hs_err_pid*
 
 #Truffle
-Truffle/build.*
+Truffle/build/*
 
