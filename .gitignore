@@ -27,3 +27,4 @@ Truffle/build/*
 
 #IntelliJ
 Java/.idea/*
+Java/sec/sol/*
