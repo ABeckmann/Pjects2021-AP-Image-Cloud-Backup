@@ -54,7 +54,7 @@ public class MetaCoin extends Contract {
 
     static {
         _addresses = new HashMap<String, String>();
-        _addresses.put("5777", "0x1FBEdF6E70AA77575A72488D64f534768F93727A");
+        _addresses.put("5777", "0x538A08725E760db70Cdba65443B03ebc275De060");
     }
 
     @Deprecated
