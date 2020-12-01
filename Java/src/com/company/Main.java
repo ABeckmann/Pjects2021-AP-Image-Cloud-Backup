@@ -15,9 +15,9 @@ import java.util.Scanner;
 
 public class Main {
 
-    private final static String PRIVATE_KEY = "17f371911d88ea39def8de3213d00d6a6a0960d7bdc849c77fbbeea5a2406bc8";
+    private final static String PRIVATE_KEY = "4ff91e050c8117461a1dc45d8c03d1d72e12af2132ffbd799c9701e5979d247f";
 
-    private final static String CONTRACT_ADDRESS = "0x3f590fDC291e49D3444059C6CB596Af76cBC689A";
+    private final static String CONTRACT_ADDRESS = "0x96F38B549a2D8A25eaa1E3A4e4d369f78322990e";
 
     private final static BigInteger GAS_LIMIT = BigInteger.valueOf(6721975L);
     private final static BigInteger GAS_Price = BigInteger.valueOf(20000000000L);
