@@ -4,6 +4,7 @@ import org.web3j.crypto.CipherException;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.core.methods.response.Web3ClientVersion;
 import org.web3j.protocol.http.HttpService;
 import sol.UploadImage;
@@ -15,19 +16,20 @@ import java.util.Scanner;
 
 public class Main {
 
-    private final static String PRIVATE_KEY = "4ff91e050c8117461a1dc45d8c03d1d72e12af2132ffbd799c9701e5979d247f";
-
-    private final static String CONTRACT_ADDRESS = "0x96F38B549a2D8A25eaa1E3A4e4d369f78322990e";
+    private final static String PRIVATE_KEY = "71253e87ec955280f921741b5f45ead1e3e9f1a9551f06717e503ed779cbcdb8";
+    private final static String CONTRACT_ADDRESS = "0xF7306f34Cb70C14DB4Fdbb859433f03881988BF0";
+    private final static String FILE_NAME = "localDatabase.txt";
 
     private final static BigInteger GAS_LIMIT = BigInteger.valueOf(6721975L);
     private final static BigInteger GAS_Price = BigInteger.valueOf(20000000000L);
 
     public static void main(String[] args) {
         ImageUploader uploader = new ImageUploader();
+        FileReaderWriter hashDatabase = new FileReaderWriter(FILE_NAME);
 
         System.out.print("Enter Image location: ");
         Scanner in = new Scanner(System.in);
-        File file = new File(in.nextLine());
+        File file = new File("IMG_20200715_002341.jpg");
         String hashString = null;
         try {
             hashString = uploader.getImageHash(file);
@@ -38,34 +40,46 @@ public class Main {
         }
 
         try {
-            new Main(hashString);
+            new Main(hashString, uploader.getImageHashtest(file));
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-//        try {
-//            new Main();
-//        }
-//        catch (Exception e) {
-//            e.printStackTrace();
-//        }
-
     }
 
-    private Main(String hash) throws Exception {
+    private Main(String hash, byte[] x) throws Exception {
         Web3j web3j = Web3j.build(new HttpService());
         printWeb3ClientVersion(web3j);
 
         UploadImage contract = loadContract(CONTRACT_ADDRESS, web3j, getCredentialsFromPrivateKey());
 
         System.out.print("Sending upload transaction........");
-        contract.storeHash(hash).send();
+
+        contract.storeHash("hello world").send();
+
+        for (int i = 0; i < 100; i++) {
+            contract.addData(x).send();
+        }
+
         System.out.println("Done");
         System.out.println("Stored hash on chain");
 
+
         System.out.println("Retrieving hash from Blockchain");
-        String storedValue = contract.message().send();
+        //String storedValue = contract.message().send();
+        String storedValue = contract.getLength().send().toString();
         System.out.println(storedValue);
+
+        byte[] encodedHash = contract.getData().send();
+
+        StringBuilder sb = new StringBuilder();
+        for (byte b : encodedHash) {
+            sb.append(String.format("%02X ", b));
+        }
+
+        String hashString = new String(sb);
+        hashString = hashString.replace(" ", "");
+        hashString = "0x" + hashString;
+        System.out.println("Generated hash: " + hashString);
     }
 
     public static void printWeb3ClientVersion(Web3j web3j) {

@@ -29,10 +29,20 @@ public class ImageUploader {
         for (byte b : encodedHash) {
             sb.append(String.format("%02X ", b));
         }
+
+
         String hashString = new String(sb);
         hashString = hashString.replace(" ", "");
+        hashString = "0x" + hashString;
         System.out.println("Generated hash: " + hashString);
 
         return hashString;
+    }
+
+    public byte[] getImageHashtest(File file) throws NoSuchAlgorithmException, IOException {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] encodedHash = digest.digest(Files.readAllBytes(file.toPath()));
+
+        return encodedHash;
     }
 }

@@ -29,4 +29,71 @@ contract UploadImage {
     function storeHash(string memory newMessage) public {
         message = newMessage;
     }
+
+    function getHash() public view returns (string memory) {
+      return message;
+    }
+
+    function getAnInt() public view returns (int) {
+      return 10;
+    }
+
+
+
+    bytes32 public x;
+
+    function storeHashTest(bytes32 newMessage) public {
+        x = newMessage;
+        arr.push(x);
+    }
+
+    function getTest() public returns(bytes32){
+      return x;
+    }
+
+     // Declaring state variable
+    bytes32[] private arr;
+
+    // Function to add data
+    // in dynamic array
+    function addData(bytes32 hash) public
+    {
+      arr.push(hash);
+    }
+
+    // Function to get data of
+    // dynamic array
+    function getData() public view returns(bytes32)
+    {
+      return arr[0];
+    }
+
+    // Function to return length
+    // of dynamic array
+    function getLength() public view returns (uint)
+    {
+      return arr.length;
+    }
+
+
+    // Function to search an
+    // element in dynamic array
+    function search(bytes32 hash) public view returns(bool)
+    {
+      uint i;
+
+      for(i = 0; i < arr.length; i++)
+      {
+        if(arr[i] == hash)
+        {
+          return true;
+        }
+      }
+
+      if(i >= arr.length)
+        return false;
+    }
+
+
+
 }
