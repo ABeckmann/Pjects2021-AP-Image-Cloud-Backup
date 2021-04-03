@@ -12,12 +12,13 @@ import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
 
-    private final static String PRIVATE_KEY = "71253e87ec955280f921741b5f45ead1e3e9f1a9551f06717e503ed779cbcdb8";
-    private final static String CONTRACT_ADDRESS = "0xF7306f34Cb70C14DB4Fdbb859433f03881988BF0";
+    private final static String PRIVATE_KEY = "cff5d4590dded52bc64a5328e69fc1c03217a256e3bba32bac14b41b88cf1967";
+    private final static String CONTRACT_ADDRESS = "0xA8316051aC09C4cDaB48ff02b73590fa4175214E";
     private final static String FILE_NAME = "localDatabase.txt";
 
     private final static BigInteger GAS_LIMIT = BigInteger.valueOf(6721975L);
@@ -54,11 +55,10 @@ public class Main {
 
         System.out.print("Sending upload transaction........");
 
-        contract.storeHash("hello world").send();
 
-        for (int i = 0; i < 100; i++) {
-            contract.addData(x).send();
-        }
+        //for (int i = 0; i < 100; i++) {
+            contract.addImage(x).send();
+        //}
 
         System.out.println("Done");
         System.out.println("Stored hash on chain");
@@ -69,12 +69,21 @@ public class Main {
         String storedValue = contract.getLength().send().toString();
         System.out.println(storedValue);
 
-        byte[] encodedHash = contract.getData().send();
+        System.out.println("Number of uploaded images: " + contract.getNumberOfUploadedImages().send());
+
+        List bytes =  contract.search().send();
+
+        System.out.println();
+
+        byte[] encodedHash = contract.getFirstImage().send();
 
         StringBuilder sb = new StringBuilder();
         for (byte b : encodedHash) {
             sb.append(String.format("%02X ", b));
         }
+
+
+        //System.out.println("From address: " + contract.getAddr().send());
 
         String hashString = new String(sb);
         hashString = hashString.replace(" ", "");

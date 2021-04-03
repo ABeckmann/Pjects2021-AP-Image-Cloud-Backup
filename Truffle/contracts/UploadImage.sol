@@ -8,6 +8,13 @@ pragma solidity ^0.5.10;
 // Learn more: https://solidity.readthedocs.io/en/v0.5.10/structure-of-a-contract.html
 contract UploadImage {
 
+  struct Image {
+    bytes32 hash;
+    address uploaderAddress;
+  }
+
+  Image[] images;
+
     // Declares a state variable `message` of type `string`.
     // State variables are variables whose values are permanently stored in contract storage.
     // The keyword `public` makes variables accessible from outside a contract
@@ -24,76 +31,56 @@ contract UploadImage {
         message = "Test string";
     }
 
-    // A public function that accepts a string argument
-    // and updates the `message` storage variable.
-    function storeHash(string memory newMessage) public {
-        message = newMessage;
-    }
-
-    function getHash() public view returns (string memory) {
-      return message;
-    }
-
-    function getAnInt() public view returns (int) {
-      return 10;
-    }
-
-
-
-    bytes32 public x;
-
-    function storeHashTest(bytes32 newMessage) public {
-        x = newMessage;
-        arr.push(x);
-    }
-
-    function getTest() public returns(bytes32){
-      return x;
-    }
-
-     // Declaring state variable
-    bytes32[] private arr;
-
-    // Function to add data
-    // in dynamic array
-    function addData(bytes32 hash) public
+    //Adds an image hash to the list
+    function addImage(bytes32 hash) public
     {
-      arr.push(hash);
-    }
+      Image memory image;
+      image.uploaderAddress = msg.sender;
+      image.hash = hash;
 
-    // Function to get data of
-    // dynamic array
-    function getData() public view returns(bytes32)
-    {
-      return arr[0];
+      images.push(image);
     }
 
     // Function to return length
     // of dynamic array
     function getLength() public view returns (uint)
     {
-      return arr.length;
+      return images.length;
     }
 
-
-    // Function to search an
-    // element in dynamic array
-    function search(bytes32 hash) public view returns(bool)
-    {
+    //Returns the number of images the client has uploaded
+    function getNumberOfUploadedImages() public view returns(uint) {
+      address addr = msg.sender;
+      uint count = 0;
       uint i;
-
-      for(i = 0; i < arr.length; i++)
+      for(i = 0; i < images.length; i++)
       {
-        if(arr[i] == hash)
+        if(images[i].uploaderAddress == msg.sender)
         {
-          return true;
+          count++;
         }
       }
 
-      if(i >= arr.length)
-        return false;
+      return count;
     }
 
+    //Searches the list of hashed images and returns a list of the hashes
+    //the client calling the function has uploaded
+    function search() public view returns(bytes32[] memory)
+    {
+      address addr = msg.sender;
+      uint length = getNumberOfUploadedImages();
+      bytes32[] memory hashes = new bytes32[](length);
 
-
+      uint i;
+      uint j;
+      for (i = 0; i < length; i++) {
+        for (j = 0; j < images.length; j++) {
+          if (images[j].uploaderAddress == addr) {
+            hashes[i] = images[i].hash;
+          }
+        }
+      }
+      return hashes;
+    }
 }
