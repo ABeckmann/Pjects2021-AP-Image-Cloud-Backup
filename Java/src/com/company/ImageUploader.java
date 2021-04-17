@@ -1,6 +1,5 @@
 package com.company;
 
-import org.web3j.abi.datatypes.Bool;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
@@ -14,19 +13,22 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 public class ImageUploader {
 
-    private final static BigInteger GAS_LIMIT = BigInteger.valueOf(6721975L);
-    private final static BigInteger GAS_Price = BigInteger.valueOf(20000000000L);
+    private final static BigInteger GAS_LIMIT = BigInteger.valueOf(672197500000000L);
+    private final static BigInteger GAS_Price = BigInteger.valueOf(1L);
 
     private Web3j web3j;
+    private Credentials _credentials;
     private UploadImage contract;
-    private ArrayList<byte[]> uploadedImages;
+    private ArrayList<Image> uploadedImages;
 
     public ImageUploader(String contractAddress, Credentials credentials) {
         web3j = Web3j.build(new HttpService());
-        contract = loadContract(contractAddress, web3j, credentials);
+        _credentials = credentials;
+        setContract(contractAddress);
         uploadedImages = new ArrayList<>();
 
         //Sync the blockchain with the local storage
@@ -38,12 +40,32 @@ public class ImageUploader {
     }
 
     public void upload(ArrayList<File> imagePaths) {
-        ArrayList<byte[]> imagesToUpload = new ArrayList<>();
+        try {
+            imageSync();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        double i = 0;
+        System.out.println("New Images to upload, checking hashes");
+
+        ArrayList<Image> imagesToUpload = new ArrayList<>();
         for (File imagePath : imagePaths) {
             try {
                 byte[] imageHash = getImageHash(imagePath);
-                if (uploadedImages.size() == 0 || !isImageAlreadyUploaded(imageHash)) {
-                    imagesToUpload.add(imageHash);
+                if (uploadedImages.size() == 0 || !isImageHashAlreadyUploaded(imageHash)) {
+                    System.out.println("New hash detected. Checking for corruption or new image");
+                    Image image = new Image(imageHash, imagePath.getName());
+                    if (!checkForCorruption(image)) {
+                        System.out.println("Adding new image: " + image.name);
+                        if (image.name.equals("IMG_20170312_174324.jpg")) {
+                            System.out.println("Debug");
+                        }
+                        imagesToUpload.add(new Image(imageHash, imagePath.getName()));
+                    }
+                    else {
+                        System.out.println("Warning corruption detected! The hashes do not line up for file: " + image.name);
+                    }
                 }
                 else {
                     System.out.println("Image already stored on blockchain: " + imagePath.getName());
@@ -53,14 +75,18 @@ public class ImageUploader {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
+            System.out.println("    Hash Verification Progress: " + (i / imagePaths.size()) * 100);
         }
 
+
+        i = 0;
+        System.out.println("Sending hashes to blockchain:");
         try {
-            for (byte[] imageHash : imagesToUpload) {
-                System.out.print("Sending upload transaction........");
-                contract.addImage(imageHash).send();
-                System.out.println("Done");
-                System.out.println("Stored hash on chain");
+            for (Image imageHash : imagesToUpload) {
+                contract.addImage(imageHash.hash, imageHash.name).send();
+                System.out.println("    Hash list upload progress: " + (int)((i / imagesToUpload.size()) * 100) + "%");
+                i++;
             }
         }
         catch (java.lang.Exception ex) {
@@ -71,6 +97,13 @@ public class ImageUploader {
     public byte[] getImageHash(File file) throws NoSuchAlgorithmException, IOException {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] encodedHash = digest.digest(Files.readAllBytes(file.toPath()));
+
+        return encodedHash;
+    }
+
+    public byte[] getImageHash(byte[] file) throws NoSuchAlgorithmException, IOException {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] encodedHash = digest.digest(file);
 
         return encodedHash;
     }
@@ -89,8 +122,12 @@ public class ImageUploader {
         return hashString;
     }
 
-    public ArrayList<byte[]> getUploadedImages() {
-        return uploadedImages;
+    /**
+     * Returns a copy of the uploadedImages ArrayList
+     * @return
+     */
+    public ArrayList<Image> getUploadedImages() {
+        return new ArrayList<>(uploadedImages);
     }
 
     private UploadImage loadContract(String contractAddress, Web3j web3j, Credentials credentials) {
@@ -98,21 +135,23 @@ public class ImageUploader {
     }
 
     private void imageSync() throws Exception {
-        System.out.println("Retrieving hash from Blockchain..............");
+        System.out.print("Retrieving hash list from Blockchain..............");
         List bytes =  contract.search().send();
         for (int i = 0; i < bytes.size(); i++) {
-            uploadedImages.add((byte[]) bytes.get(i));
-            System.out.println("Found hash: " + formatBytesToHumanReadable((byte[])bytes.get(i)));
+            byte[] imageBytes = (byte[]) bytes.get(i);
+            String imageName = contract.getImageNameFromHash(imageBytes).send();
+            uploadedImages.add(new Image(imageBytes, imageName));
+            //System.out.println("Found hash: " + formatBytesToHumanReadable((byte[])bytes.get(i)));
         }
+        System.out.println("Done");
     }
 
-    private Boolean isImageAlreadyUploaded(byte[] hash) {
-
-        for(byte[] uploadedImage : uploadedImages) {
-            if (uploadedImage.length == hash.length) {
+    public Boolean isImageHashAlreadyUploaded(byte[] hash) {
+        for(Image uploadedImage : uploadedImages) {
+            if (uploadedImage.hash.length == hash.length) {
                 Boolean isEqual = false;
                 for (int i = 0; i < hash.length; i++) {
-                    if (uploadedImage[i] == hash[i]) {
+                    if (uploadedImage.hash[i] == hash[i]) {
                         isEqual = true;
                     }
                     else {
@@ -127,5 +166,49 @@ public class ImageUploader {
         }
 
         return false;
+    }
+
+    public Boolean isImageNameUploaded(String name) {
+        for (Image image : uploadedImages) {
+            if (image.name.equals(name)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public Boolean checkForCorruption(Image image){
+        //Check if hash is already uploaded
+        if (!isImageHashAlreadyUploaded(image.hash)) {
+            System.out.println("New hash detected, checking for corruptions");
+
+            //If the hash is not found check if the filename has been uploaded
+            if (isImageNameUploaded(image.name)) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    public void setContract(String contractAddress) {
+        Boolean credentialError = true;
+
+        while (credentialError) {
+            try {
+                contract = loadContract(contractAddress, web3j, _credentials);
+                credentialError = false;
+            }
+            catch (Exception e) {
+                System.out.println("Error: invalid contract address.");
+                System.out.print("Enter valid contract address: ");
+                Scanner in = new Scanner(System.in);
+                contractAddress = in.nextLine();
+            }
+        }
     }
 }

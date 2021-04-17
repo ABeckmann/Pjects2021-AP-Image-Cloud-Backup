@@ -6,31 +6,66 @@ import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.response.Web3ClientVersion;
 import sol.UploadImage;
+
+import javax.crypto.SecretKey;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Scanner;
 
 public class Main {
 
-    private final static String PRIVATE_KEY = "6ea31140f1f463a2523ed296567cfea581d8fd91225c58116eec469d4b88b237";
-    private final static String CONTRACT_ADDRESS = "0x2E092DAE686c5656469f640158E1C29aeB7Ec826";
+    private static String PRIVATE_KEY = "";
+    private static String CONTRACT_ADDRESS = "";
+    private static String _imagesFolder = "";
 
     public static void main(String[] args) {
-        ImageUploader uploader = new ImageUploader(CONTRACT_ADDRESS, getCredentialsFromPrivateKey());
-
-        System.out.print("Enter Image location: ");
         Scanner in = new Scanner(System.in);
-        //File file = new File("IMG_20200715_002341.jpg");
-        String fileString = in.nextLine();
-        File file = new File(fileString);
 
-        ArrayList<File> images = new ArrayList<>();
-        images.add(file);
+        String password = "";
+        Persistence persistence = new Persistence();
 
-        uploader.upload(images);
+        if (persistence.saveFileExists()) {
+            System.out.println("Persistence file detected.");
+            while (true) {
+                System.out.print("Password: ");
+                password = in.nextLine();
+                if (persistence.load(password)) {
+                    break;
+                }
+                else {
+                    System.out.println();
+                    System.out.println("Password incorrect");
+                }
+            }
+        }
+        else {
+            //Todo: validate these:
+            System.out.print("Your Private Key: ");
+            PRIVATE_KEY = in.nextLine();
+
+            System.out.print("Smart Contract: ");
+            CONTRACT_ADDRESS = in.nextLine();
+
+            System.out.print("Enter image folder: ");
+            _imagesFolder = in.nextLine();
+
+            System.out.print("Creating persistence file. Password: ");
+            password = in.nextLine();
+            persistence.save(password);
+        }
+
+        ImageUploader uploader = new ImageUploader(CONTRACT_ADDRESS, getCredentialsFromPrivateKey());
+        FileManager fileMan = new FileManager(_imagesFolder, uploader);
+
+        UI ui = new UI(uploader, fileMan, persistence);
+        ui.input();
+
     }
 
     private Credentials getCredentialsFromWallet() throws IOException, CipherException {
@@ -43,5 +78,29 @@ public class Main {
      */
     private static Credentials getCredentialsFromPrivateKey() {
         return Credentials.create(PRIVATE_KEY);
+    }
+
+    public static String getPrivateKey() {
+        return PRIVATE_KEY;
+    }
+
+    public static String getContractAddress() {
+        return CONTRACT_ADDRESS;
+    }
+
+    public static String getImagesFolder() {
+        return  _imagesFolder;
+    }
+
+    public static void setPrivateKey(String privateKey) {
+        PRIVATE_KEY = privateKey;
+    }
+
+    public static void setContractAddress(String contractAddress) {
+        CONTRACT_ADDRESS = contractAddress;
+    }
+
+    public static void setImagesFolder(String imagesFolder) {
+        _imagesFolder = imagesFolder;
     }
 }

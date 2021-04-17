@@ -11,6 +11,7 @@ contract UploadImage {
   struct Image {
     bytes32 hash;
     address uploaderAddress;
+    string name;
   }
 
   Image[] images;
@@ -32,13 +33,19 @@ contract UploadImage {
     }
 
     //Adds an image hash to the list
-    function addImage(bytes32 hash) public
+    function addImage(bytes32 hash, string memory name) public
     {
-      Image memory image;
-      image.uploaderAddress = msg.sender;
-      image.hash = hash;
-
-      images.push(image);
+      //Ignore duplicates.
+      if (!isAlreadyUploaded(hash)) {
+        Image memory image;
+        image.uploaderAddress = msg.sender;
+        image.hash = hash;
+        image.name = name;
+        images.push(image);
+      }
+      else {
+        revert();
+      }
     }
 
     // Function to return length
@@ -82,5 +89,33 @@ contract UploadImage {
         }
       }
       return hashes;
+    }
+
+    function getImageNameFromHash(bytes32 hash) public view returns (string memory) {
+      uint length = getNumberOfUploadedImages();
+      uint i;
+      uint j;
+      for (i = 0; i < length; i++) {
+        for (j = 0; j < images.length; j++) {
+          if (images[j].hash == hash) {
+            return images[j].name;
+          }
+        }
+      }
+    }
+
+    function isAlreadyUploaded(bytes32 hash) public view returns (bool) {
+      uint length = getNumberOfUploadedImages();
+      uint i;
+      uint j;
+      for (i = 0; i < length; i++) {
+        for (j = 0; j < images.length; j++) {
+          if (images[j].hash == hash) {
+            return true;
+          }
+        }
+      }
+
+     return false;
     }
 }
