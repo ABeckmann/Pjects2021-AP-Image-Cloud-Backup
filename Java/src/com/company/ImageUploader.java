@@ -4,7 +4,6 @@ import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
 import sol.UploadImage;
-
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -15,21 +14,30 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+/**
+ * @author Alex Pearce 913987
+ * This class interacts with the blockchain smart contracts using a Web3J instance to map java calls to solidty.
+ */
 public class ImageUploader {
 
     private final static BigInteger GAS_LIMIT = BigInteger.valueOf(672197500000000L);
     private final static BigInteger GAS_Price = BigInteger.valueOf(1L);
 
-    private Web3j web3j;
+    private Web3j _web3j;
     private Credentials _credentials;
-    private UploadImage contract;
-    private ArrayList<Image> uploadedImages;
+    private UploadImage _contract;
+    private ArrayList<Image> _uploadedImages;
 
+    /**
+     * Constructor
+     * @param contractAddress Ethereum smart contract address
+     * @param credentials Credentials generated using an Ethereum private key
+     */
     public ImageUploader(String contractAddress, Credentials credentials) {
-        web3j = Web3j.build(new HttpService());
+        _web3j = Web3j.build(new HttpService());
         _credentials = credentials;
-        setContract(contractAddress);
-        uploadedImages = new ArrayList<>();
+        set_contract(contractAddress);
+        _uploadedImages = new ArrayList<>();
 
         //Sync the blockchain with the local storage
         try {
@@ -39,6 +47,10 @@ public class ImageUploader {
         }
     }
 
+    /**
+     * Upload image data(name, hash) to the blockchain.
+     * @param imagePaths
+     */
     public void upload(ArrayList<File> imagePaths) {
         try {
             imageSync();
@@ -46,21 +58,21 @@ public class ImageUploader {
             e.printStackTrace();
         }
 
-        double i = 0;
-        System.out.println("New Images to upload, checking hashes");
+        //Todo: possibly clean up the output
+        if (imagePaths.size() > 0) {
+            double i = 0;
+            System.out.println("New Images to upload, checking hashes");
 
-        ArrayList<Image> imagesToUpload = new ArrayList<>();
-        for (File imagePath : imagePaths) {
-            try {
+            ArrayList<Image> imagesToUpload = new ArrayList<>();
+
+            //For each image check if its already on the blockchain, only upload if it isn't.
+            for (File imagePath : imagePaths) {
                 byte[] imageHash = getImageHash(imagePath);
-                if (uploadedImages.size() == 0 || !isImageHashAlreadyUploaded(imageHash)) {
+                if (_uploadedImages.size() == 0 || !isImageHashAlreadyUploaded(imageHash)) {
                     System.out.println("New hash detected. Checking for corruption or new image");
                     Image image = new Image(imageHash, imagePath.getName());
                     if (!checkForCorruption(image)) {
                         System.out.println("Adding new image: " + image.name);
-                        if (image.name.equals("IMG_20170312_174324.jpg")) {
-                            System.out.println("Debug");
-                        }
                         imagesToUpload.add(new Image(imageHash, imagePath.getName()));
                     }
                     else {
@@ -70,86 +82,109 @@ public class ImageUploader {
                 else {
                     System.out.println("Image already stored on blockchain: " + imagePath.getName());
                 }
-            } catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
+                System.out.println("    Hash Verification Progress: " + (i / imagePaths.size()) * 100);
             }
 
-            System.out.println("    Hash Verification Progress: " + (i / imagePaths.size()) * 100);
+
+            //Upload the non duplicates
+            i = 0;
+            System.out.println("Sending hashes to blockchain:");
+            try {
+                for (Image image : imagesToUpload) {
+                    _contract.addImage(image.hash, image.name).send();
+                    i++;
+                    System.out.println("    Hash list upload progress: " + (int)((i / imagesToUpload.size()) * 100) + "%");
+                    _uploadedImages.add(image);
+                }
+            } catch (RuntimeException ex) {
+                System.out.println("Upload failed. Check your private key and the contract address are valid");
+            } catch (java.lang.Exception ex) {
+                ex.printStackTrace();
+            }
         }
+    }
 
-
-        i = 0;
-        System.out.println("Sending hashes to blockchain:");
+    /**
+     * Computes the hash of a given image
+     * @param file image file
+     * @return hash as a byte array
+     */
+    public byte[] getImageHash(File file) {
         try {
-            for (Image imageHash : imagesToUpload) {
-                contract.addImage(imageHash.hash, imageHash.name).send();
-                System.out.println("    Hash list upload progress: " + (int)((i / imagesToUpload.size()) * 100) + "%");
-                i++;
-            }
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] encodedHash = digest.digest(Files.readAllBytes(file.toPath()));
+
+            return encodedHash;
+        } catch (IOException e) {
+            System.out.println("File not found: " + file.getName());
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            //This should never throw
+            e.printStackTrace();
         }
-        catch (java.lang.Exception ex) {
-            ex.printStackTrace();
-        }
+        return null;
     }
 
-    public byte[] getImageHash(File file) throws NoSuchAlgorithmException, IOException {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] encodedHash = digest.digest(Files.readAllBytes(file.toPath()));
-
-        return encodedHash;
-    }
-
-    public byte[] getImageHash(byte[] file) throws NoSuchAlgorithmException, IOException {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+    /**
+     * Computes the hash of a file in bytes
+     * @param file bytes of a file
+     * @return hash bytes as a byte array
+     */
+    public byte[] getImageHash(byte[] file) {
+        MessageDigest digest = null;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            //This should never throw
+            e.printStackTrace();
+        }
         byte[] encodedHash = digest.digest(file);
-
         return encodedHash;
-    }
-
-    public String formatBytesToHumanReadable(byte[] bytes) {
-
-        StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format("%02X ", b));
-        }
-
-        String hashString = new String(sb);
-        hashString = hashString.replace(" ", "");
-        hashString = "0x" + hashString;
-
-        return hashString;
     }
 
     /**
      * Returns a copy of the uploadedImages ArrayList
-     * @return
+     * @return copy of the uploadedImages ArrayList
      */
-    public ArrayList<Image> getUploadedImages() {
-        return new ArrayList<>(uploadedImages);
+    public ArrayList<Image> get_uploadedImages() {
+        return new ArrayList<>(_uploadedImages);
     }
 
+    /**
+     * Loads the contract in Web3J so contract calls can be made
+     * @param contractAddress Ethereum contract address
+     * @param web3j web3j instance
+     * @param credentials generated credentials from an Ethereum private key
+     * @return Web3J contract
+     */
     private UploadImage loadContract(String contractAddress, Web3j web3j, Credentials credentials) {
         return UploadImage.load(contractAddress, web3j, credentials, GAS_Price, GAS_LIMIT);
     }
 
+    /**
+     * Pulls the uploaded list from the blockchain and saves it locally
+     * @throws Exception if there is a problem with the contract execution
+     */
     private void imageSync() throws Exception {
         System.out.print("Retrieving hash list from Blockchain..............");
-        List bytes =  contract.search().send();
+        List bytes =  _contract.search().send();
         for (int i = 0; i < bytes.size(); i++) {
             byte[] imageBytes = (byte[]) bytes.get(i);
-            String imageName = contract.getImageNameFromHash(imageBytes).send();
-            uploadedImages.add(new Image(imageBytes, imageName));
-            //System.out.println("Found hash: " + formatBytesToHumanReadable((byte[])bytes.get(i)));
+            String imageName = _contract.getImageNameFromHash(imageBytes).send();
+            _uploadedImages.add(new Image(imageBytes, imageName));
         }
         System.out.println("Done");
     }
 
+    /**
+     * Check if an image hash is already on the blockchain
+     * @param hash hash to search for
+     * @return true if the hash is on the blockchain
+     */
     public Boolean isImageHashAlreadyUploaded(byte[] hash) {
-        for(Image uploadedImage : uploadedImages) {
+        for(Image uploadedImage : _uploadedImages) {
             if (uploadedImage.hash.length == hash.length) {
-                Boolean isEqual = false;
+                boolean isEqual = false;
                 for (int i = 0; i < hash.length; i++) {
                     if (uploadedImage.hash[i] == hash[i]) {
                         isEqual = true;
@@ -168,8 +203,13 @@ public class ImageUploader {
         return false;
     }
 
+    /**
+     * Checks if an image name is already on the blockchain
+     * @param name name of the image file
+     * @return true if the name is already on the blockchain
+     */
     public Boolean isImageNameUploaded(String name) {
-        for (Image image : uploadedImages) {
+        for (Image image : _uploadedImages) {
             if (image.name.equals(name)) {
                 return true;
             }
@@ -178,6 +218,11 @@ public class ImageUploader {
         return false;
     }
 
+    /**
+     * Looks for an image corruption based on the hash
+     * @param image image to check for corruption
+     * @return true if corrupt
+     */
     public Boolean checkForCorruption(Image image){
         //Check if hash is already uploaded
         if (!isImageHashAlreadyUploaded(image.hash)) {
@@ -195,13 +240,20 @@ public class ImageUploader {
         return false;
     }
 
-    public void setContract(String contractAddress) {
+    /**
+     * Sets the contract
+     * @param contractAddress Ethereum smart contract address
+     */
+    public void set_contract(String contractAddress) {
         Boolean credentialError = true;
 
+        //Keep looping until a valid input
         while (credentialError) {
             try {
-                contract = loadContract(contractAddress, web3j, _credentials);
+                _contract = loadContract(contractAddress, _web3j, _credentials);
                 credentialError = false;
+                Main.setContractAddress(contractAddress);
+                Persistence.save();
             }
             catch (Exception e) {
                 System.out.println("Error: invalid contract address.");
@@ -211,4 +263,15 @@ public class ImageUploader {
             }
         }
     }
+
+    /**
+     * Sets the private key
+     * @param privateKey Ethereum private key
+     */
+    public void setPrivateKey(String privateKey) {
+        Main.setPrivateKey(privateKey);
+        _credentials = Main.getCredentialsFromPrivateKey();
+        set_contract(Main.getContractAddress());
+    }
+
 }

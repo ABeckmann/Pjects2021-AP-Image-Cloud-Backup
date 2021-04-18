@@ -4,19 +4,31 @@ import javax.crypto.SecretKey;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Base64;
 
+/**
+ * @author Alex Pearce 913987
+ *
+ * Handles Saving/Loading persistant data(private key, contract address, images directory).
+ */
 public class Persistence {
-    private String _persistenceFileName = "persistance";
+    private static String _persistenceFileName = "persistence";
+    private static String _password;
 
 
-    public Boolean saveFileExists() {
+    /**
+     * Checks of the file exists
+     * @return
+     */
+    public static Boolean saveFileExists() {
         File file = new File(_persistenceFileName);
-
         return file.exists();
     }
 
-    public void save(String password) {
+    /**
+     * Saves the data to the file and encrypts it
+     * @param password
+     */
+    public static void save(String password) {
         try {
             AES aes = new AES();
             SecretKey key = aes.generateKeyFromPassword(password);
@@ -34,15 +46,31 @@ public class Persistence {
             byte[] cipherText = aes.encrypt(fileBytes, key);
 
             Files.write(Paths.get(_persistenceFileName), cipherText);
+            _password = password;
 
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-
     }
 
-    public Boolean load(String password) {
+    /**
+     * If the file has already been saved the password is cached so no password parameter required.
+     */
+    public static void save() {
+        if (_password != null) {
+            save(_password);
+        }
+        else {
+            System.out.println("Unable to save: no password given");
+        }
+    }
+
+    /**
+     * Loads the file data. Decrypts it then imports the data.
+     * @param password
+     * @return
+     */
+    public static Boolean load(String password) {
         if (saveFileExists()) {
             try {
                 AES aes = new AES();
@@ -63,6 +91,8 @@ public class Persistence {
                 Main.setPrivateKey(split[0]);
                 Main.setContractAddress(split[1]);
                 Main.setImagesFolder(split[2]);
+
+                _password = password;
 
             } catch (Exception e) {
                 return false;
