@@ -13,6 +13,7 @@ import java.util.*;
 public class FileManager {
     private final ImageUploader _uploader;
     private final String photosLocation;
+    private final String[] FILE_TYPES = {"png", "jpeg", "jpg", "raw"};
 
     /**
      * Constructor
@@ -28,7 +29,6 @@ public class FileManager {
      * Checks the local images and looks for missing/corrupt/new.
      */
     public void scanPhotos() {
-        //todo: filter image files
 
         ArrayList<File> newImagesToUpload = new ArrayList<>();
         ArrayList<File> imageFileList = getImageList();
@@ -40,8 +40,8 @@ public class FileManager {
            if (!_uploader.isImageHashAlreadyUploaded(_uploader.getImageHash(image))) {
                newImagesToUpload.add(image);
            }
+            i++;
            System.out.println("    Scan Progress: " + (int)((i / imageFileList.size()) * 100) + "%");
-           i++;
         }
 
         //Upload any image hashes that are not on the blockchain
@@ -119,7 +119,9 @@ public class FileManager {
         ArrayList<File> imageFiles = new ArrayList<>();
         if (dirList != null) {
             for (File image : dirList) {
-                imageFiles.add(image);
+                if (isValidFileType(image.getName())) {
+                    imageFiles.add(image);
+                }
             }
         } else {
             System.out.println("Error folder not found: " + photosLocation);
@@ -127,6 +129,29 @@ public class FileManager {
 
         return imageFiles;
     }
+
+    /**
+     * Extracts the file extension
+     * @param fileName
+     * @return string of the filetype e.g "txt"
+     */
+    private String getFileExtension(String fileName) {
+        //Regex split ONLY at the last "." e.g "Hello.World.txt" results in {"Hello.World", "txt"}
+        String[] split = fileName.split("\\.(?=[^\\.]+$)");
+
+        return split[split.length - 1];
+    }
+
+    private boolean isValidFileType(String fileName) {
+        String fileType = getFileExtension(fileName);
+        for (String type : FILE_TYPES) {
+            if (fileType.equals(type)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     /**
      * Exports all the images (name, hash, image data) to a single encrypted file.
@@ -257,8 +282,8 @@ public class FileManager {
                 else {
                     System.out.println("Error exported image hash mismatch (Possibly the export has been corrupted): " + imageName);
                 }
-                System.out.println("    Import progress: " + (int)((i / lines.size()) * 100) + "%");
                 i++;
+                System.out.println("    Import progress: " + (int)((i / lines.size()) * 100) + "%");
             }
             System.out.println("Finished import");
 

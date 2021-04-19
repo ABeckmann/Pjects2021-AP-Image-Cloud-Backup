@@ -58,30 +58,28 @@ public class ImageUploader {
             e.printStackTrace();
         }
 
-        //Todo: possibly clean up the output
         if (imagePaths.size() > 0) {
             double i = 0;
             System.out.println("New Images to upload, checking hashes");
 
             ArrayList<Image> imagesToUpload = new ArrayList<>();
 
+            int corruptionsCount = 0;
+            int newImages = 0;
             //For each image check if its already on the blockchain, only upload if it isn't.
             for (File imagePath : imagePaths) {
                 byte[] imageHash = getImageHash(imagePath);
                 if (_uploadedImages.size() == 0 || !isImageHashAlreadyUploaded(imageHash)) {
-                    System.out.println("New hash detected. Checking for corruption or new image");
                     Image image = new Image(imageHash, imagePath.getName());
                     if (!checkForCorruption(image)) {
-                        System.out.println("Adding new image: " + image.name);
                         imagesToUpload.add(new Image(imageHash, imagePath.getName()));
+                        newImages++;
                     }
                     else {
-                        System.out.println("Warning corruption detected! The hashes do not line up for file: " + image.name);
+                        corruptionsCount++;
                     }
                 }
-                else {
-                    System.out.println("Image already stored on blockchain: " + imagePath.getName());
-                }
+                i++;
                 System.out.println("    Hash Verification Progress: " + (i / imagePaths.size()) * 100);
             }
 
@@ -101,6 +99,10 @@ public class ImageUploader {
             } catch (java.lang.Exception ex) {
                 ex.printStackTrace();
             }
+
+            System.out.println("Upload complete");
+            System.out.println("New images added: " + newImages);
+            System.out.println("Corruptions found: " + corruptionsCount);
         }
     }
 
