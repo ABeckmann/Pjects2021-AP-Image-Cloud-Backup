@@ -142,6 +142,11 @@ public class FileManager {
         return split[split.length - 1];
     }
 
+    /**
+     * checks if its a valid image filetype.
+     * @param fileName
+     * @return true of valid image filetype
+     */
     private boolean isValidFileType(String fileName) {
         String fileType = getFileExtension(fileName);
         for (String type : FILE_TYPES) {
