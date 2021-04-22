@@ -169,7 +169,7 @@ public class ImageUploader {
      */
     private void imageSync() throws Exception {
         System.out.print("Retrieving hash list from Blockchain..............");
-        List bytes =  _contract.search().send();
+        List bytes =  _contract.getImageList().send();
         for (int i = 0; i < bytes.size(); i++) {
             byte[] imageBytes = (byte[]) bytes.get(i);
             String imageName = _contract.getImageNameFromHash(imageBytes).send();

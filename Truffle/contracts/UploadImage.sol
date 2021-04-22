@@ -54,7 +54,7 @@ contract UploadImage {
 
   //Searches the list of hashed images and returns a list of the hashes
   //the client calling the function has uploaded
-  function search() public view returns(bytes32[] memory)
+  function getImageList() public view returns(bytes32[] memory)
   {
     address addr = msg.sender;
     uint length = getNumberOfUploadedImages();
