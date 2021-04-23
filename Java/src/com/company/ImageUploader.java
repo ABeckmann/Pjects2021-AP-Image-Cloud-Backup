@@ -275,5 +275,4 @@ public class ImageUploader {
         _credentials = Main.getCredentialsFromPrivateKey();
         set_contract(Main.getContractAddress());
     }
-
 }
