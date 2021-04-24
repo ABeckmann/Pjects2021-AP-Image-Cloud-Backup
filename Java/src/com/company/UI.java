@@ -151,6 +151,7 @@ public class UI {
                 break;
             case "3":
                 Main.setImagesFolder();
+                _fileManager.setPhotosLocation();
                 break;
             case "4":
                 System.out.print("New password: ");

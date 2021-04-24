@@ -152,5 +152,6 @@ public class Main {
      */
     public static void setImagesFolder(String imagesFolder) {
         _imagesFolder = imagesFolder;
+
     }
 }

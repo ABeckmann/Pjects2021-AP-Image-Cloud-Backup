@@ -12,7 +12,7 @@ import java.util.*;
  */
 public class FileManager {
     private final ImageUploader _uploader;
-    private final String photosLocation;
+    private String photosLocation;
     private final String[] FILE_TYPES = {"png", "jpeg", "jpg", "raw"};
 
     /**
@@ -129,6 +129,14 @@ public class FileManager {
 
         return imageFiles;
     }
+
+    /**
+     * Sets the images directory based in the value stored in Main
+     */
+    public void setPhotosLocation() {
+        photosLocation = Main.getImagesFolder();
+    }
+
 
     /**
      * Extracts the file extension

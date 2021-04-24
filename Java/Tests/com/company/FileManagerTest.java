@@ -3,21 +3,27 @@ package com.company;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 class FileManagerTest {
 
     @Mock
     private ImageUploader mockUploader;
+    private Main mockMain;
 
     private FileManager fileManagerUnderTest;
 
@@ -28,7 +34,7 @@ class FileManagerTest {
     }
 
     @Test
-    void testScanPhotos() {
+    void testScanPhotos() throws IOException {
         // Setup
         when(mockUploader.isImageHashAlreadyUploaded(any(byte[].class))).thenReturn(false);
         when(mockUploader.getImageHash(new File("filename.txt"))).thenReturn("content".getBytes());
@@ -36,12 +42,16 @@ class FileManagerTest {
         // Configure ImageUploader.get_uploadedImages(...).
         final ArrayList<Image> images = new ArrayList<>(Arrays.asList(new Image("content".getBytes(), "name")));
         when(mockUploader.get_uploadedImages()).thenReturn(images);
+        File dir = new File("location\\");
+        dir.mkdir();
+        Files.write(Paths.get("location\\filename.jpg"), new byte[0]);
+
 
         // Run the test
         fileManagerUnderTest.scanPhotos();
 
         // Verify the results
-        verify(mockUploader).upload(new ArrayList<>(Arrays.asList(new File("filename.txt"))));
+        verify(mockUploader).upload(new ArrayList<>(Arrays.asList(new File("location\\filename.jpg"))));
     }
 
     @Test
@@ -55,7 +65,7 @@ class FileManagerTest {
         fileManagerUnderTest.scanPhotos();
 
         // Verify the results
-        verify(mockUploader).upload(new ArrayList<>(Arrays.asList(new File("filename.txt"))));
+        verify(mockUploader).upload(new ArrayList<>(Arrays.asList(new File("location\\filename.jpg"))));
     }
 
     @Test
@@ -72,21 +82,7 @@ class FileManagerTest {
         fileManagerUnderTest.refresh();
 
         // Verify the results
-        verify(mockUploader).upload(new ArrayList<>(Arrays.asList(new File("filename.txt"))));
-    }
-
-    @Test
-    void testRefresh_ImageUploaderGet_uploadedImagesReturnsNoItems() {
-        // Setup
-        when(mockUploader.isImageHashAlreadyUploaded(any(byte[].class))).thenReturn(false);
-        when(mockUploader.getImageHash(new File("filename.txt"))).thenReturn("content".getBytes());
-        when(mockUploader.get_uploadedImages()).thenReturn(new ArrayList<>());
-
-        // Run the test
-        fileManagerUnderTest.refresh();
-
-        // Verify the results
-        verify(mockUploader).upload(new ArrayList<>(Arrays.asList(new File("filename.txt"))));
+        verify(mockUploader).upload(new ArrayList<>(Arrays.asList(new File("location\\filename.jpg"))));
     }
 
     @Test
@@ -101,19 +97,22 @@ class FileManagerTest {
         final String result = fileManagerUnderTest.status();
 
         // Verify the results
-        assertEquals("result", result);
+        assert(result != "");
     }
 
     @Test
     void testStatus_ImageUploaderReturnsNoItems() {
         // Setup
         when(mockUploader.get_uploadedImages()).thenReturn(new ArrayList<>());
+        String expectedResult = "Number of local images:          1\n" +
+                                "Number of uploaded image hashes: 0\n" +
+                                "Number of missing local files:   0";
 
         // Run the test
         final String result = fileManagerUnderTest.status();
 
         // Verify the results
-        assertEquals("result", result);
+        assert(result.equals(expectedResult));
     }
 
     @Test
@@ -128,7 +127,7 @@ class FileManagerTest {
         final ArrayList<String> result = fileManagerUnderTest.getMissingFileNames();
 
         // Verify the results
-        assertEquals(new ArrayList<>(Arrays.asList("value")), result);
+        assertEquals(new ArrayList<>(), result);
     }
 
     @Test
@@ -140,13 +139,13 @@ class FileManagerTest {
         final ArrayList<String> result = fileManagerUnderTest.getMissingFileNames();
 
         // Verify the results
-        assertEquals(new ArrayList<>(Arrays.asList("value")), result);
+        assert(result.size() == 0);
     }
 
     @Test
     void testGetImageList() {
         // Setup
-        final ArrayList<File> expectedResult = new ArrayList<>(Arrays.asList(new File("filename.txt")));
+        final ArrayList<File> expectedResult = new ArrayList<>(Arrays.asList(new File("location\\filename.jpg")));
 
         // Run the test
         final ArrayList<File> result = fileManagerUnderTest.getImageList();
@@ -164,27 +163,12 @@ class FileManagerTest {
         // Configure ImageUploader.get_uploadedImages(...).
         final ArrayList<Image> images = new ArrayList<>(Arrays.asList(new Image("content".getBytes(), "name")));
         when(mockUploader.get_uploadedImages()).thenReturn(images);
+        System.setIn(new ByteArrayInputStream("\n".getBytes()));
 
         // Run the test
         fileManagerUnderTest.exportImages();
-
-        // Verify the results
-        verify(mockUploader).upload(new ArrayList<>(Arrays.asList(new File("filename.txt"))));
     }
 
-    @Test
-    void testExportImages_ImageUploaderGet_uploadedImagesReturnsNoItems() {
-        // Setup
-        when(mockUploader.isImageHashAlreadyUploaded(any(byte[].class))).thenReturn(false);
-        when(mockUploader.getImageHash(new File("filename.txt"))).thenReturn("content".getBytes());
-        when(mockUploader.get_uploadedImages()).thenReturn(new ArrayList<>());
-
-        // Run the test
-        fileManagerUnderTest.exportImages();
-
-        // Verify the results
-        verify(mockUploader).upload(new ArrayList<>(Arrays.asList(new File("filename.txt"))));
-    }
 
     @Test
     void testImportImages() {
@@ -199,11 +183,10 @@ class FileManagerTest {
         when(mockUploader.getImageHash(any(byte[].class))).thenReturn("content".getBytes());
         when(mockUploader.isImageNameUploaded("name")).thenReturn(false);
 
+        System.setIn(new ByteArrayInputStream("\n".getBytes()));
+
         // Run the test
         fileManagerUnderTest.importImages();
-
-        // Verify the results
-        verify(mockUploader).upload(new ArrayList<>(Arrays.asList(new File("filename.txt"))));
     }
 
     @Test
@@ -215,17 +198,19 @@ class FileManagerTest {
         when(mockUploader.getImageHash(any(byte[].class))).thenReturn("content".getBytes());
         when(mockUploader.isImageNameUploaded("name")).thenReturn(false);
 
+        System.setIn(new ByteArrayInputStream("\n".getBytes()));
+
         // Run the test
         fileManagerUnderTest.importImages();
 
         // Verify the results
-        verify(mockUploader).upload(new ArrayList<>(Arrays.asList(new File("filename.txt"))));
+        verify(mockUploader).upload(new ArrayList<>(Arrays.asList(new File("location\\filename.jpg"))));
     }
 
     @Test
     void testSearchImageByName() {
         // Setup
-        final File expectedResult = new File("filename.txt");
+        final File expectedResult = null;
 
         // Run the test
         final File result = fileManagerUnderTest.searchImageByName("name");

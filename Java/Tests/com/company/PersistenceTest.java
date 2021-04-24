@@ -13,7 +13,6 @@ class PersistenceTest {
 
     @Test
     void testSaveFileExists() {
-
         assertTrue(Persistence.saveFileExists());
     }
 
