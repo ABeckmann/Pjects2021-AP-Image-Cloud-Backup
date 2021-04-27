@@ -3,12 +3,10 @@ package com.company;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -48,7 +46,7 @@ class FileManagerTest {
 
 
         // Run the test
-        fileManagerUnderTest.scanPhotos();
+        fileManagerUnderTest.scanImages();
 
         // Verify the results
         verify(mockUploader).upload(new ArrayList<>(Arrays.asList(new File("location\\filename.jpg"))));
@@ -62,7 +60,7 @@ class FileManagerTest {
         when(mockUploader.get_uploadedImages()).thenReturn(new ArrayList<>());
 
         // Run the test
-        fileManagerUnderTest.scanPhotos();
+        fileManagerUnderTest.scanImages();
 
         // Verify the results
         verify(mockUploader).upload(new ArrayList<>(Arrays.asList(new File("location\\filename.jpg"))));

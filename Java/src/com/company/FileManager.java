@@ -28,8 +28,7 @@ public class FileManager {
     /**
      * Checks the local images and looks for missing/corrupt/new.
      */
-    public void scanPhotos() {
-
+    public void scanImages() {
         ArrayList<File> newImagesToUpload = new ArrayList<>();
         ArrayList<File> imageFileList = getImageList();
 
@@ -63,7 +62,7 @@ public class FileManager {
      * Executes refresh command
      */
     public void refresh() {
-        scanPhotos();
+        scanImages();
     }
 
     /**
