@@ -80,7 +80,7 @@ public class ImageUploader {
                     }
                 }
                 i++;
-                System.out.println("    Hash Verification Progress: " + (i / imagePaths.size()) * 100);
+                System.out.println("    Hash Verification Progress: " + (int)((i / imagePaths.size()) * 100));
             }
 
 

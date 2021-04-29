@@ -245,7 +245,7 @@ public class FileManager {
                 lines.add(split[i]);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("Error: unable to decrypt exported file");
         }
 
         System.out.println("    Decrypted");

@@ -27,8 +27,7 @@ public class UI {
      */
     public void input() {
         //Clear console
-        System.out.print("\033[H\033[2J");
-        System.out.flush();
+        clearConsole();
 
         Scanner in = new Scanner(System.in);
         System.out.println("Image verification system");
@@ -86,9 +85,13 @@ public class UI {
                 case "set":
                     printSet();
                     break;
+                case "clear":
+                    clearConsole();
+                    break;
                 case "exit":
                     break loop;
-
+                default:
+                    System.out.println("Error: command \"" + input + "\" not recognised");
             }
 
         }
@@ -116,8 +119,7 @@ public class UI {
      */
     public void printSet() {
         //Clear console
-        System.out.print("\033[H\033[2J");
-        System.out.flush();
+        clearConsole();
 
         Scanner in = new Scanner(System.in);
 
@@ -159,5 +161,19 @@ public class UI {
                 break;
         }
         Persistence.save();
+    }
+
+    public static void clearConsole()
+    {
+        try
+        {
+            //Runtime.getRuntime().exec("cls");
+            new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
+        }
+        catch (final Exception e)
+        {
+            //  Handle any exceptions.
+            System.out.println("Error: Unable to clear console");
+        }
     }
 }
