@@ -92,7 +92,6 @@ public class ImageUploader {
                     _contract.addImage(image.hash, image.name).send();
                     i++;
                     System.out.println("    Hash list upload progress: " + (int)((i / imagesToUpload.size()) * 100) + "%");
-                    _uploadedImages.add(image);
                 }
             } catch (RuntimeException ex) {
                 System.out.println("Upload failed. Check your private key and the contract address are valid");
@@ -169,6 +168,7 @@ public class ImageUploader {
      */
     private void imageSync() throws Exception {
         System.out.print("Retrieving hash list from Blockchain..............");
+        _uploadedImages = new ArrayList<>();
         List bytes =  _contract.getImageList().send();
         for (int i = 0; i < bytes.size(); i++) {
             byte[] imageBytes = (byte[]) bytes.get(i);

@@ -196,7 +196,7 @@ public class FileManager {
                 writer.write(fileBytes + '\n');
 
                 i++;
-                double percentComplete = (i / imageFiles.size()) * 100;
+                double percentComplete = (int)((i / imageFiles.size()) * 100);
                 System.out.println("        Exported: " + percentComplete + "%");
             }
             writer.flush();
